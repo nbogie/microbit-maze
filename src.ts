@@ -37,7 +37,7 @@ class Room {
     }
 }
 let rooms: Room[][] = [];
-let gridWidth = 3;
+let gridWidth = 7;
 
 function offSetForDir(d: string): number[] {
     switch (d) {
@@ -122,7 +122,7 @@ function listRooms(rs: Room[]) {
 //following https://en.wikipedia.org/wiki/Maze_generation_algorithm#Recursive_backtracker
 function recursiveBacktracking() {
     let stack: Room[] = [];
-    let cr: Room = roomAt(0, 0);//randomRoom();
+    let cr: Room = randomRoom();
     cr.markVisited();
     let iterations: number = 0;
     let broken = false;
@@ -395,10 +395,11 @@ function pauseAfterMovement() {
 
 makeLevel();
 
-let location = { x: 2, y: 2 };
+let location = randomLocation();
 let pixelLocation = { x: 2, y: 2 };
 basic.clearScreen();
 drawCurrentRoom();
+drawPixelInRoom();
 basic.forever(function () {
 
     if (isJoystickLeft()) {
