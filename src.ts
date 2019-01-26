@@ -36,9 +36,6 @@ class Room {
         this.walls[this.wallIx(dir)] = false;
     }
 }
-let rooms: Room[][] = [];
-let gridWidth = 7;
-
 function offSetForDir(d: string): number[] {
     switch (d) {
         case 'n':
@@ -294,6 +291,9 @@ function changePixelLocationBy(xOff: number, yOff: number) {
 } function goLeft() {
     return move(-1, 0);
 }
+function randomImageName() {
+    return pickFromArray([IconNames.Ghost, IconNames.Heart, IconNames.Skull, IconNames.Diamond, IconNames.Sword, IconNames.House]);
+}
 function move(xOff: number, yOff: number) {
     let oldPixelLocation = pixelLocation;
     if (changePixelLocationBy(xOff, yOff)) {
@@ -301,6 +301,7 @@ function move(xOff: number, yOff: number) {
         led.plot(pixelLocation.x, pixelLocation.y);
     } else {
         if (changeLocationBy(xOff, yOff)) {
+            basic.showIcon(randomImageName());
             switchPixelPosForRoomSwitch(xOff, yOff);
             drawCurrentRoom();
             drawPixelInRoom();
@@ -377,6 +378,28 @@ input.onGesture(Gesture.LogoUp, function () {
 input.onGesture(Gesture.LogoDown, function () {
     goDown();
 })
+input.onGesture(Gesture.Shake, function () {
+    if (pixelLocation.x === 2 && pixelLocation.y === 2) {
+        openRandomChest();
+    }
+})
+function waitAnim() {
+    basic.clearScreen();
+    basic.pause(400);
+    led.plot(0, 3);
+    basic.pause(400);
+    led.plot(2, 3);
+    basic.pause(400);
+    led.plot(4, 3);
+    basic.pause(400);
+}
+function openRandomChest() {
+    waitAnim();
+    waitAnim();
+
+    basic.showIcon(randomImageName());
+    redraw();
+}
 function isJoystickLeft() {
     return getJoyHorizontalAmount() < 300;
 }
@@ -393,13 +416,19 @@ function pauseAfterMovement() {
     basic.pause(300);
 }
 
-makeLevel();
 
+function redraw() {
+    basic.clearScreen();
+    drawCurrentRoom();
+    drawPixelInRoom();
+}
+
+let rooms: Room[][] = [];
+let gridWidth = 7;
+makeLevel();
 let location = randomLocation();
 let pixelLocation = { x: 2, y: 2 };
-basic.clearScreen();
-drawCurrentRoom();
-drawPixelInRoom();
+redraw();
 basic.forever(function () {
 
     if (isJoystickLeft()) {
