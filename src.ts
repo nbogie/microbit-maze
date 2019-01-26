@@ -283,10 +283,19 @@ function changeLocationBy(xOff: number, yOff: number) {
         return null;
     }
 }
+function currentRoom(): Room {
+    return roomAt(location.x, location.y);
+}
+function wallAtPixel(x: number, y: number): boolean {
+    return (x === 0 && currentRoom().hasWallAt('w')) ||
+        (x === screenWidth - 1 && currentRoom().hasWallAt('e')) ||
+        (y === 0 && currentRoom().hasWallAt('n')) ||
+        (y === screenWidth - 1 && currentRoom().hasWallAt('s'));
+}
 function changePixelLocationBy(xOff: number, yOff: number) {
     let nextX = (pixelLocation.x + xOff);
     let nextY = (pixelLocation.y + yOff);
-    if (inPixelGrid(nextX, nextY)) {
+    if (inPixelGrid(nextX, nextY) && !wallAtPixel(nextX, nextY)) {
         pixelLocation = { x: nextX, y: nextY };
         return pixelLocation;
     } else {
@@ -446,6 +455,7 @@ function redraw() {
 
 let rooms: Room[][] = [];
 let gridWidth = 7;
+let screenWidth = 5;
 let gItemLocations: { exit: { x: number, y: number }, ghost: { x: number, y: number }, sword: { x: number, y: number } };
 
 makeLevel();
@@ -462,6 +472,12 @@ function equalLocations(loc1: { x: number, y: number }, loc2: { x: number, y: nu
 
 basic.forever(function () {
 
+    if (pins.digitalReadPin(DigitalPin.P16)) {
+        basic.showString(`${pixelLocation.x},${pixelLocation.y}`, 40);
+    }
+    if (pins.digitalReadPin(DigitalPin.P14)) {
+        basic.showString(['n', 'e', 's', 'w'].filter(d => currentRoom().hasWallAt(d)).join(','), 50);
+    }
     if (isJoystickLeft()) {
         goLeft();
         pauseAfterMovement();
