@@ -8,11 +8,18 @@ class Room {
     x: number;
     y: number;
     walls: boolean[];
+    isVisited: boolean;
     constructor(x: number, y: number) {
         this.x = x;
         this.y = y;
         this.walls = [true, true, true, true];
-
+        this.isVisited = false;
+    }
+    markVisited() {
+        this.isVisited = true;
+    }
+    clearVisited() {
+        this.isVisited = false;
     }
     wallIx(dir: string): number {
         let posns = ['n', 'e', 's', 'w'];
@@ -39,13 +46,97 @@ function offSetForDir(d: string): number[] {
         case 'w':
             return [-1, 0];
         default:
-            return [-9, -9]; //todo
+            return null;
     }
 }
 function makeARoom(x: number, y: number) {
     return new Room(x, y);
 }
+function unvisitedRooms() {
+    return allRooms().filter(r => !r.isVisited);
+}
 
+function areThereStillUnvisitedRooms() {
+    let count = unvisitedRooms().length;
+    return count > 0;
+}
+function pickFromArray<T>(arr: T[]): T {
+    if (arr.length < 1) {
+        return null;
+    } else {
+        return arr[Math.randomRange(0, arr.length - 1)];
+    }
+}
+function neighboursOf(r: Room): Room[] {
+    let ns: Room[] = []
+    if (r.x > 0) {
+        ns.push(roomAt(r.x - 1, r.y));
+    }
+    if (r.x < gridWidth - 2) {
+        ns.push(roomAt(r.x + 1, r.y));
+    }
+    if (r.y > 0) {
+        ns.push(roomAt(r.x, r.y - 1));
+    }
+    if (r.y < gridWidth - 2) {
+        ns.push(roomAt(r.x, r.y + 1));
+    }
+    return ns;
+}
+
+function unvisitedNeighboursOf(r: Room): Room[] {
+    return neighboursOf(r).filter(n => !n.isVisited);
+}
+
+function getDirBetweenRooms(r1: Room, r2: Room) {
+    if (r2.x > r1.x) {
+        return 'e';
+    } else if (r2.x < r1.x) {
+        return 'w';
+    } else if (r2.y > r1.y) {
+        return 's';
+    } else if (r2.y < r1.y) {
+        return 'n';
+    } else {
+        return null;
+    }
+}
+function removeWallBetween(r1: Room, r2: Room) {
+    let dir: string = getDirBetweenRooms(r1, r2);
+    r1.removeWallAt(dir);
+    r2.removeWallAt(oppositeDirection(dir));
+}
+
+function recursiveBacktracking() {
+    let stack: Room[] = [];
+    let cr: Room = roomAt(3, 1);
+    //randomRoom();
+    cr.markVisited();
+    let iterations :number = 0;
+    let broken = false;
+    while (areThereStillUnvisitedRooms() && ! broken) {
+        let ns: Room[] = unvisitedNeighboursOf(cr);
+        broken = (stack.length === 0) && (ns.length === 0);
+        serial.writeLine(`${ns.length} ns of ${cr.x},${cr.y} and stack: ${stack.length} and ${unvisitedRooms().length} unvisited`);
+        if (ns.length > 0) {
+            let n: Room = pickFromArray(ns);
+            stack.push(cr);
+            serial.writeLine(`PUSH ${cr.x} ${cr.y} ${cr.isVisited} (size: ${stack.length}`);
+            //removeWallBetween(cr, n);
+            cr = n;
+            cr.markVisited();
+        } else if (stack.length > 0) {
+            cr = stack.pop();
+            serial.writeLine(`POP ${cr.x}, ${cr.y}, stack now: ${stack.length}`);
+        } else {
+            basic.showIcon(IconNames.Confused);
+        }
+        led.toggle(0, 0);
+    }
+    if (broken){
+        serial.writeLine("generation ran too long - error");
+    }
+}
 
 function randomLocation() {
     return {
@@ -104,9 +195,11 @@ function makeLevel() {
     }
 
     forEachLocation((x: number, y: number) => (rooms[x][y] = makeARoom(x, y)));
-    for (let i = 0; i < 40; i++) {
-        removeOneWall();
-    }
+    recursiveBacktracking();
+
+    //for (let i = 0; i < 40; i++) {
+    //    removeOneWall();
+    //}
 }
 function randomDirection() {
     return ["n", "e", "s", "w"][Math.floor(3 * Math.random())]
@@ -118,6 +211,16 @@ function forEachLocation(callback: (x: number, y: number) => void) {
             callback(x, y);
         }
     }
+}
+function allRooms(): Room[] {
+    let rs: Room[] = [];
+    forEachLocation((x, y) => rs.push(roomAt(x, y)));
+    return rs;
+}
+
+function randomRoom() {
+    let l = randomLocation();
+    return roomAt(l.x, l.y);
 }
 
 function drawWall(r: Room, dir: string) {
@@ -138,7 +241,6 @@ function drawCurrentRoom() {
     basic.clearScreen();
     let r = roomAt(location.x, location.y);
     drawRoom(r);
-    led.toggle(1, 1);
 }
 
 function getJoyHorizontalAmount() {
@@ -279,12 +381,13 @@ function isJoystickUp() {
 function pauseAfterMovement() {
     basic.pause(300);
 }
+
 makeLevel();
+
 let location = { x: 2, y: 2 };
 let pixelLocation = { x: 2, y: 2 };
 basic.clearScreen();
 drawCurrentRoom();
-
 basic.forever(function () {
 
     if (isJoystickLeft()) {
