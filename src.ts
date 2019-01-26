@@ -443,7 +443,7 @@ function isJoystickUp() {
     return getJoyVerticalAmount() > 712;
 }
 function pauseAfterMovement() {
-    basic.pause(300);
+    basic.pause(100);
 }
 
 
