@@ -148,6 +148,17 @@ function recursiveBacktracking() {
     }
 }
 
+function allRooms(): Room[] {
+    let rs: Room[] = [];
+    forEachLocation((x, y) => rs.push(roomAt(x, y)));
+    return rs;
+}
+
+function randomRoom() {
+    let l = randomLocation();
+    return roomAt(l.x, l.y);
+}
+
 function randomLocation(): { x: number, y: number } {
     return {
         x: Math.randomRange(0, gridWidth - 1),
@@ -176,42 +187,23 @@ function roomAt(x: number, y: number): Room {
         return null;
     }
 }
-function removeOneWall() {
-    let loc = randomLocation();
-    let randomRoom: Room = roomAt(loc.x, loc.y);
-    let dir: string = randomDirection();
-    randomRoom.removeWallAt(dir);
-
-    let offset = offSetForDir(dir);
-
-    let nx = loc.x + offset[0];
-    let ny = loc.y + offset[1];
-    if (inGrid(nx, ny)) {
-
-        let neighbour = roomAt(nx, ny);
-        if (neighbour) {
-            neighbour.removeWallAt(oppositeDirection(dir))
-        } else {
-            basic.showString(`n${nx} ${ny}`, 30);
-
-        }
-    }
-
+function removeOneWallAtRandom() {
+    let room: Room = randomRoom();
+    let neighbour = pickFromArray(neighboursOf(room));
+    removeWallBetween(room, neighbour);
 }
 
 function makeLevel() {
     for (let x = 0; x < gridWidth; x++) {
         rooms[x] = [];
     }
-
-    forEachLocation((x: number, y: number) => (rooms[x][y] = makeARoom(x, y)));
-
+    forEachLocation((x, y) => (rooms[x][y] = makeARoom(x, y)));
     recursiveBacktracking();
     gItemLocations = { exit: randomLocation(), ghost: randomLocation(), sword: randomLocation() };
 
 }
 function randomDirection() {
-    return ["n", "e", "s", "w"][Math.floor(3 * Math.random())]
+    return pickFromArray(["n", "e", "s", "w"])
 }
 function forEachLocation(callback: (x: number, y: number) => void) {
     let n = gridWidth;
@@ -221,17 +213,6 @@ function forEachLocation(callback: (x: number, y: number) => void) {
         }
     }
 }
-function allRooms(): Room[] {
-    let rs: Room[] = [];
-    forEachLocation((x, y) => rs.push(roomAt(x, y)));
-    return rs;
-}
-
-function randomRoom() {
-    let l = randomLocation();
-    return roomAt(l.x, l.y);
-}
-
 function drawWall(r: Room, dir: string) {
     let wallBrightness = 100;
     if (r.hasWallAt(dir)) {
@@ -479,7 +460,7 @@ basic.forever(function () {
         basic.showString(['n', 'e', 's', 'w'].filter(d => currentRoom().hasWallAt(d)).join(','), 50);
     }
     applyTiltInput();
-    applyJoystickInput();
+    //applyJoystickInput();
 
 });
 function applyXMovement(x: number) {
