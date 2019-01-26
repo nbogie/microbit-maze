@@ -148,7 +148,7 @@ function recursiveBacktracking() {
     }
 }
 
-function randomLocation() {
+function randomLocation(): { x: number, y: number } {
     return {
         x: Math.randomRange(0, gridWidth - 1),
         y: Math.randomRange(0, gridWidth - 1)
@@ -207,6 +207,7 @@ function makeLevel() {
     forEachLocation((x: number, y: number) => (rooms[x][y] = makeARoom(x, y)));
 
     recursiveBacktracking();
+    gItemLocations = { exit: randomLocation(), ghost: randomLocation(), sword: randomLocation() };
 
 }
 function randomDirection() {
@@ -232,19 +233,20 @@ function randomRoom() {
 }
 
 function drawWall(r: Room, dir: string) {
+    let wallBrightness = 100;
     if (r.hasWallAt(dir)) {
         if (dir === 'w' || dir === 'e') {
             for (let y = 0; y < 5; y++) {
-                led.plot(dir === 'w' ? 0 : 4, y);
+                led.plotBrightness(dir === 'w' ? 0 : 4, y, wallBrightness);
             }
         } else {
             for (let x = 0; x < 5; x++) {
-                led.plot(x, dir === 'n' ? 0 : 4);
+                led.plotBrightness(x, dir === 'n' ? 0 : 4, wallBrightness);
             }
-
         }
     }
 }
+
 function drawCurrentRoom() {
     basic.clearScreen();
     let r = roomAt(location.x, location.y);
@@ -254,9 +256,11 @@ function drawCurrentRoom() {
 function getJoyHorizontalAmount() {
     return pins.analogReadPin(AnalogPin.P1);
 }
+
 function getJoyVerticalAmount() {
     return pins.analogReadPin(AnalogPin.P2);
 }
+
 function drawRoom(r: Room) {
     ['n', 'e', 's', 'w'].forEach(d => drawWall(r, d));
 }
@@ -292,8 +296,9 @@ function changePixelLocationBy(xOff: number, yOff: number) {
     return move(-1, 0);
 }
 function randomImageName() {
-    return pickFromArray([IconNames.Ghost, IconNames.Heart, IconNames.Skull, IconNames.Diamond, IconNames.Sword, IconNames.House]);
+    return pickFromArray([IconNames.Ghost, IconNames.Heart, IconNames.Skull, IconNames.Diamond, IconNames.Sword, IconNames.House, IconNames.Rabbit, IconNames.Pitchfork, IconNames.Snake, IconNames.SmallHeart]);
 }
+
 function move(xOff: number, yOff: number) {
     let oldPixelLocation = pixelLocation;
     if (changePixelLocationBy(xOff, yOff)) {
@@ -301,7 +306,12 @@ function move(xOff: number, yOff: number) {
         led.plot(pixelLocation.x, pixelLocation.y);
     } else {
         if (changeLocationBy(xOff, yOff)) {
-            basic.showIcon(randomImageName());
+            if (equalLocations(location, gItemLocations.exit)) {
+                showDoor();
+            } else if (equalLocations(location, gItemLocations.ghost)) {
+                basic.showIcon(IconNames.Ghost);
+
+            }
             switchPixelPosForRoomSwitch(xOff, yOff);
             drawCurrentRoom();
             drawPixelInRoom();
@@ -393,6 +403,17 @@ function waitAnim() {
     led.plot(4, 3);
     basic.pause(400);
 }
+function showDoor() {
+    basic.showLeds(`
+    . # # # .
+    # . . . #
+    # . . . #
+    # . . . #
+    # . . . #
+    `)
+}
+
+
 function openRandomChest() {
     waitAnim();
     waitAnim();
@@ -425,10 +446,20 @@ function redraw() {
 
 let rooms: Room[][] = [];
 let gridWidth = 7;
+let gItemLocations: { exit: { x: number, y: number }, ghost: { x: number, y: number }, sword: { x: number, y: number } };
+
 makeLevel();
 let location = randomLocation();
 let pixelLocation = { x: 2, y: 2 };
 redraw();
+function locToStr(loc: { x: number, y: number }) {
+    return `${loc.x},${loc.y}`;
+}
+
+function equalLocations(loc1: { x: number, y: number }, loc2: { x: number, y: number }): boolean {
+    return loc1.x === loc2.x && loc1.y === loc2.y;
+}
+
 basic.forever(function () {
 
     if (isJoystickLeft()) {
@@ -445,4 +476,4 @@ basic.forever(function () {
         pauseAfterMovement();
     }
 
-})
+});
