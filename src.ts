@@ -15,6 +15,10 @@ class Room {
         this.walls = [true, true, true, true];
         this.isVisited = false;
     }
+    toStr() {
+        return `${this.x},${this.y}(${this.isVisited})`;
+    }
+
     markVisited() {
         this.isVisited = true;
     }
@@ -33,7 +37,7 @@ class Room {
     }
 }
 let rooms: Room[][] = [];
-let gridWidth = 7;
+let gridWidth = 3;
 
 function offSetForDir(d: string): number[] {
     switch (d) {
@@ -72,13 +76,13 @@ function neighboursOf(r: Room): Room[] {
     if (r.x > 0) {
         ns.push(roomAt(r.x - 1, r.y));
     }
-    if (r.x < gridWidth - 2) {
+    if (r.x < gridWidth - 1) {
         ns.push(roomAt(r.x + 1, r.y));
     }
     if (r.y > 0) {
         ns.push(roomAt(r.x, r.y - 1));
     }
-    if (r.y < gridWidth - 2) {
+    if (r.y < gridWidth - 1) {
         ns.push(roomAt(r.x, r.y + 1));
     }
     return ns;
@@ -107,33 +111,42 @@ function removeWallBetween(r1: Room, r2: Room) {
     r2.removeWallAt(oppositeDirection(dir));
 }
 
+function listStack(stack: Room[]) {
+    return `STACK len:${stack.length} content:` + stack.map(r => r.toStr()).join('  ');
+}
+
+function listRooms(rs: Room[]) {
+    return `len:${rs.length} content:` + rs.map(r => r.toStr()).join('  ');
+}
+
+//following https://en.wikipedia.org/wiki/Maze_generation_algorithm#Recursive_backtracker
 function recursiveBacktracking() {
     let stack: Room[] = [];
-    let cr: Room = roomAt(3, 1);
-    //randomRoom();
+    let cr: Room = roomAt(0, 0);//randomRoom();
     cr.markVisited();
-    let iterations :number = 0;
+    let iterations: number = 0;
     let broken = false;
-    while (areThereStillUnvisitedRooms() && ! broken) {
+
+
+    while (areThereStillUnvisitedRooms() && !broken) {
         let ns: Room[] = unvisitedNeighboursOf(cr);
+        let normalNs: Room[] = neighboursOf(cr);
+
         broken = (stack.length === 0) && (ns.length === 0);
-        serial.writeLine(`${ns.length} ns of ${cr.x},${cr.y} and stack: ${stack.length} and ${unvisitedRooms().length} unvisited`);
         if (ns.length > 0) {
             let n: Room = pickFromArray(ns);
             stack.push(cr);
-            serial.writeLine(`PUSH ${cr.x} ${cr.y} ${cr.isVisited} (size: ${stack.length}`);
-            //removeWallBetween(cr, n);
+            removeWallBetween(cr, n);
             cr = n;
             cr.markVisited();
         } else if (stack.length > 0) {
             cr = stack.pop();
-            serial.writeLine(`POP ${cr.x}, ${cr.y}, stack now: ${stack.length}`);
         } else {
             basic.showIcon(IconNames.Confused);
         }
         led.toggle(0, 0);
     }
-    if (broken){
+    if (broken) {
         serial.writeLine("generation ran too long - error");
     }
 }
@@ -195,11 +208,9 @@ function makeLevel() {
     }
 
     forEachLocation((x: number, y: number) => (rooms[x][y] = makeARoom(x, y)));
+
     recursiveBacktracking();
 
-    //for (let i = 0; i < 40; i++) {
-    //    removeOneWall();
-    //}
 }
 function randomDirection() {
     return ["n", "e", "s", "w"][Math.floor(3 * Math.random())]
