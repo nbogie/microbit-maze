@@ -446,6 +446,13 @@ function pauseAfterMovement() {
     basic.pause(100);
 }
 
+function locToStr(loc: { x: number, y: number }) {
+    return `${loc.x},${loc.y}`;
+}
+
+function equalLocations(loc1: { x: number, y: number }, loc2: { x: number, y: number }): boolean {
+    return loc1.x === loc2.x && loc1.y === loc2.y;
+}
 
 function redraw() {
     basic.clearScreen();
@@ -457,18 +464,11 @@ let rooms: Room[][] = [];
 let gridWidth = 7;
 let screenWidth = 5;
 let gItemLocations: { exit: { x: number, y: number }, ghost: { x: number, y: number }, sword: { x: number, y: number } };
-
 makeLevel();
 let location = randomLocation();
 let pixelLocation = { x: 2, y: 2 };
 redraw();
-function locToStr(loc: { x: number, y: number }) {
-    return `${loc.x},${loc.y}`;
-}
-
-function equalLocations(loc1: { x: number, y: number }, loc2: { x: number, y: number }): boolean {
-    return loc1.x === loc2.x && loc1.y === loc2.y;
-}
+const tiltThreshold = 30;
 
 basic.forever(function () {
 
@@ -478,6 +478,40 @@ basic.forever(function () {
     if (pins.digitalReadPin(DigitalPin.P14)) {
         basic.showString(['n', 'e', 's', 'w'].filter(d => currentRoom().hasWallAt(d)).join(','), 50);
     }
+    applyTiltInput();
+    applyJoystickInput();
+
+});
+function applyXMovement(x: number) {
+    if (x < -tiltThreshold) {
+        goLeft();
+        pauseAfterMovement();
+    } else if (x > tiltThreshold) {
+        goRight();
+        pauseAfterMovement();
+    }
+} function applyYMovement(y: number) {
+    if (y < -tiltThreshold) {
+        goUp();
+        pauseAfterMovement();
+    } else if (y > tiltThreshold) {
+        goDown();
+        pauseAfterMovement();
+    }
+}
+function applyTiltInput() {
+    let rx = input.rotation(Rotation.Roll);
+    let ry = input.rotation(Rotation.Pitch);
+    if (Math.abs(rx) > Math.abs(ry)) {
+        applyXMovement(rx);
+        applyYMovement(ry);
+    } else {
+        applyYMovement(ry);
+        applyYMovement(rx);
+    }
+}
+
+function applyJoystickInput() {
     if (isJoystickLeft()) {
         goLeft();
         pauseAfterMovement();
@@ -492,4 +526,4 @@ basic.forever(function () {
         pauseAfterMovement();
     }
 
-});
+}
