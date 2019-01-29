@@ -1,5 +1,5 @@
-enum Direction {
-    North = 1,
+enum Dir {
+    North = 0,
     South,
     West,
     East,
@@ -25,26 +25,23 @@ class Room {
     clearVisited() {
         this.isVisited = false;
     }
-    wallIx(dir: string): number {
-        let posns = ['n', 'e', 's', 'w'];
-        return posns.indexOf(dir);
+
+    hasWallAt(dir: Dir): boolean {
+        return this.walls[allDirections.indexOf(dir)];
     }
-    hasWallAt(dir: string): boolean {
-        return this.walls[this.wallIx(dir)];
-    }
-    removeWallAt(dir: string): void {
-        this.walls[this.wallIx(dir)] = false;
+    removeWallAt(dir: Dir): void {
+        this.walls[allDirections.indexOf(dir)] = false;
     }
 }
-function offSetForDir(d: string): number[] {
+function offSetForDir(d: Dir): number[] {
     switch (d) {
-        case 'n':
+        case Dir.North:
             return [0, -1];
-        case 'e':
+        case Dir.East:
             return [1, 0];
-        case 's':
+        case Dir.South:
             return [0, 1];
-        case 'w':
+        case Dir.West:
             return [-1, 0];
         default:
             return null;
@@ -89,21 +86,21 @@ function unvisitedNeighboursOf(r: Room): Room[] {
     return neighboursOf(r).filter(n => !n.isVisited);
 }
 
-function getDirBetweenRooms(r1: Room, r2: Room) {
+function getDirBetweenRooms(r1: Room, r2: Room): Dir {
     if (r2.x > r1.x) {
-        return 'e';
+        return Dir.East;
     } else if (r2.x < r1.x) {
-        return 'w';
+        return Dir.West;
     } else if (r2.y > r1.y) {
-        return 's';
+        return Dir.South;
     } else if (r2.y < r1.y) {
-        return 'n';
+        return Dir.North;
     } else {
         return null;
     }
 }
 function removeWallBetween(r1: Room, r2: Room) {
-    let dir: string = getDirBetweenRooms(r1, r2);
+    let dir: Dir = getDirBetweenRooms(r1, r2);
     r1.removeWallAt(dir);
     r2.removeWallAt(oppositeDirection(dir));
 }
@@ -166,9 +163,9 @@ function randomLocation(): { x: number, y: number } {
     };
 }
 
-function oppositeDirection(d: string): string {
-    let input: string[] = ['n', 'e', 's', 'w'];
-    let out: string[] = ['s', 'w', 'n', 'e'];
+function oppositeDirection(d: Dir): Dir {
+    let input: Dir[] = allDirections;
+    let out: Dir[] = [Dir.South, Dir.West, Dir.North, Dir.East];
     let ix = input.indexOf(d);
     return out[ix];
 }
@@ -202,8 +199,9 @@ function makeLevel() {
     gItemLocations = { exit: randomLocation(), ghost: randomLocation(), sword: randomLocation() };
 
 }
+const allDirections = [Dir.North, Dir.East, Dir.South, Dir.West];
 function randomDirection() {
-    return pickFromArray(["n", "e", "s", "w"])
+    return pickFromArray(allDirections)
 }
 function forEachLocation(callback: (x: number, y: number) => void) {
     let n = gridWidth;
@@ -213,16 +211,16 @@ function forEachLocation(callback: (x: number, y: number) => void) {
         }
     }
 }
-function drawWall(r: Room, dir: string) {
+function drawWall(r: Room, dir: Dir) {
     let wallBrightness = 100;
     if (r.hasWallAt(dir)) {
-        if (dir === 'w' || dir === 'e') {
+        if (dir === Dir.West || dir === Dir.East) {
             for (let y = 0; y < 5; y++) {
-                led.plotBrightness(dir === 'w' ? 0 : 4, y, wallBrightness);
+                led.plotBrightness(dir === Dir.West ? 0 : 4, y, wallBrightness);
             }
         } else {
             for (let x = 0; x < 5; x++) {
-                led.plotBrightness(x, dir === 'n' ? 0 : 4, wallBrightness);
+                led.plotBrightness(x, dir === Dir.North ? 0 : 4, wallBrightness);
             }
         }
     }
@@ -243,7 +241,7 @@ function getJoyVerticalAmount() {
 }
 
 function drawRoom(r: Room) {
-    ['n', 'e', 's', 'w'].forEach(d => drawWall(r, d));
+    allDirections.forEach(d => drawWall(r, d));
 }
 
 function canLeaveRoomBy(xOff: number, yOff: number) {
@@ -268,10 +266,10 @@ function currentRoom(): Room {
     return roomAt(location.x, location.y);
 }
 function wallAtPixel(x: number, y: number): boolean {
-    return (x === 0 && currentRoom().hasWallAt('w')) ||
-        (x === screenWidth - 1 && currentRoom().hasWallAt('e')) ||
-        (y === 0 && currentRoom().hasWallAt('n')) ||
-        (y === screenWidth - 1 && currentRoom().hasWallAt('s'));
+    return (x === 0 && currentRoom().hasWallAt(Dir.West)) ||
+        (x === screenWidth - 1 && currentRoom().hasWallAt(Dir.East)) ||
+        (y === 0 && currentRoom().hasWallAt(Dir.North)) ||
+        (y === screenWidth - 1 && currentRoom().hasWallAt(Dir.South));
 }
 function changePixelLocationBy(xOff: number, yOff: number) {
     let nextX = (pixelLocation.x + xOff);
@@ -312,13 +310,13 @@ function move(xOff: number, yOff: number) {
 }
 function getDirForOffsets(xOff: number, yOff: number) {
     if (xOff > 0) {
-        return 'e';
+        return Dir.East;
     } else if (xOff < 0) {
-        return 'w';
+        return Dir.West;
     } else if (yOff > 0) {
-        return 's';
+        return Dir.South;
     } else if (yOff < 0) {
-        return 'n';
+        return Dir.North;
     } else {
         return null;
     }
@@ -440,7 +438,7 @@ function redraw() {
     drawCurrentRoom();
     drawPixelInRoom();
 }
-
+basic.showIcon(IconNames.Heart)
 let rooms: Room[][] = [];
 let gridWidth = 7;
 let screenWidth = 5;
@@ -457,7 +455,7 @@ basic.forever(function () {
         basic.showString(`${pixelLocation.x},${pixelLocation.y}`, 40);
     }
     if (pins.digitalReadPin(DigitalPin.P14)) {
-        basic.showString(['n', 'e', 's', 'w'].filter(d => currentRoom().hasWallAt(d)).join(','), 50);
+        basic.showString(allDirections.filter(d => currentRoom().hasWallAt(d)).join(','), 50);
     }
     applyTiltInput();
     //applyJoystickInput();
